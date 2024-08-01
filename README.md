@@ -1,6 +1,6 @@
-![image](https://github.com/user-attachments/assets/a88c6f06-2609-41f0-8337-e583729d4585)# AWS-Data-Pipeline-S3-to-Redshift
 
-# ETL script
+
+## ETL script
 import sys
 from awsglue.transforms import *
 from awsglue.utils import getResolvedOptions
@@ -110,7 +110,7 @@ S3bucket_node3 = glueContext.write_dynamic_frame.from_options(frame=dynamic_fram
 
 logger.info('etl job processed successfully')
 job.commit()
-# ETL job logs
+## ETL job logs
 ![Screenshot 2024-08-01 141948](https://github.com/user-attachments/assets/fd99cb09-f40b-4a39-b971-ccbc7454d684)
 ![Screenshot 2024-08-01 142002](https://github.com/user-attachments/assets/6051656a-4c9b-4342-b9a4-05378a4bdaf5)
 

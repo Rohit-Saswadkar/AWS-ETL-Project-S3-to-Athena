@@ -1,6 +1,6 @@
 
 
-## ETL script
+# ETL script
 import sys
 from awsglue.transforms import *
 from awsglue.utils import getResolvedOptions
@@ -16,7 +16,7 @@ logger = logging.getLogger('my_logger')
 logger.setLevel(logging.INFO)
 
 
-# Create a handler for CloudWatch
+## Create a handler for CloudWatch
 handler = logging.StreamHandler()
 handler.setLevel(logging.INFO)
 logger.addHandler(handler)
@@ -32,7 +32,7 @@ job = Job(glueContext)
 job.init(args['JOB_NAME'], args)
 
 
-# Script generated for node Amazon S3
+## Script generated for node Amazon S3
 S3bucket_node1 = glueContext.create_dynamic_frame.from_catalog(database="mydatabase", table_name="product", transformation_ctx="S3bucket_node1")
 
 
@@ -44,7 +44,7 @@ print("Number of rows in S3bucket_node1 dynamic frame: ", count)
 logger.info('count for frame is {}'.format(count))
 
 
-# Script generated for node Change Schema
+## Script generated for node Change Schema
 ApplyMapping_node2 = ApplyMapping.apply(
     frame=S3bucket_node1,
     mappings=[
@@ -78,7 +78,7 @@ logger.info('filter rows with  where new_seller_id is not null')
 spark_data_frame_filter = spark_data_frame.where("new_seller_id is NOT NULL")
 
 
-# Add the new column to the data frame
+## Add the new column to the data frame
 logger.info('create new column status with Active value')
 spark_data_frame_filter = spark_data_frame_filter.withColumn("new_status", lit("Active"))
 
@@ -95,22 +95,22 @@ product_sql_df = spark.sql("SELECT new_year,count(new_customer_id) as cnt,sum(ne
 logger.info('display records after aggregate result')
 product_sql_df.show()
 
-# Convert the data frame back to a dynamic frame
+## Convert the data frame back to a dynamic frame
 logger.info('convert spark dataframe to dynamic frame ')
 dynamic_frame = DynamicFrame.fromDF(product_sql_df, glueContext, "dynamic_frame")
 
 
 
 logger.info('dynamic frame uploaded in bucket rohit-myglue-etl-project-1/output/ in parquet format ')
-# Script generated for node S3 bucket
+## Script generated for node S3 bucket
 
 
-# Script generated for node Amazon S3
+## Script generated for node Amazon S3
 S3bucket_node3 = glueContext.write_dynamic_frame.from_options(frame=dynamic_frame, connection_type="s3", format="glueparquet", connection_options={"path": "s3://rohit-myglue-etl-project-1/output/", "partitionKeys": []}, transformation_ctx="S3bucket_node3")
 
 logger.info('etl job processed successfully')
 job.commit()
-## ETL job logs
+# ETL job logs
 ![Screenshot 2024-08-01 141948](https://github.com/user-attachments/assets/fd99cb09-f40b-4a39-b971-ccbc7454d684)
 ![Screenshot 2024-08-01 142002](https://github.com/user-attachments/assets/6051656a-4c9b-4342-b9a4-05378a4bdaf5)
 

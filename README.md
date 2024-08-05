@@ -1,7 +1,3 @@
-Here is a detailed README file for your project to include in your GitHub repository:
-
----
-
 # AWS ETL Project: S3 to Athena
 
 ## Overview

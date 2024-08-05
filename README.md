@@ -156,11 +156,11 @@ STORED AS INPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFo
 OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
 LOCATION 's3://s-rohit1-epd-project-ip-bucket/output/';
 ```
-### 8. Craete a Lambda function to run the ETL Job
+### 7. Craete a Lambda function to run the ETL Job
 
 ![Screenshot 2024-08-03 233117](https://github.com/user-attachments/assets/d95fb455-11ad-4602-91bf-9ad4c91c835b)
 
-### 7. Query Data Using Athena
+### 8. Query Data Using Athena
 
 Run SQL queries on the data stored in the Athena table to generate insights.
 ![Screenshot 2024-08-03 234453](https://github.com/user-attachments/assets/58cf6ce9-eaab-4baa-b3fc-d2923a64d99a)

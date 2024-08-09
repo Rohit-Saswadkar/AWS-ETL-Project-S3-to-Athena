@@ -44,19 +44,21 @@ Create an AWS Glue Crawler to crawl the input S3 bucket and create a database wi
 
 Create and configure an AWS Glue ETL job with the following script:
 
-```python
 import sys
 from awsglue.transforms import *
 from awsglue.utils import getResolvedOptions
 from pyspark.context import SparkContext
 from awsglue.context import GlueContext
 from awsglue.job import Job
-from pyspark.sql.functions import lit
+from pyspark.sql.functions import lit, col
+from pyspark.sql import functions as F
 from awsglue.dynamicframe import DynamicFrame
 import logging
 
+
 logger = logging.getLogger('my_logger')
 logger.setLevel(logging.INFO)
+
 
 # Create a handler for CloudWatch
 handler = logging.StreamHandler()
@@ -65,6 +67,7 @@ logger.addHandler(handler)
 
 logger.info('My log message')
 
+
 args = getResolvedOptions(sys.argv, ['JOB_NAME'])
 sc = SparkContext()
 glueContext = GlueContext(sc)
@@ -72,8 +75,10 @@ spark = glueContext.spark_session
 job = Job(glueContext)
 job.init(args['JOB_NAME'], args)
 
+
 # Script generated for node Amazon S3
 S3bucket_node1 = glueContext.create_dynamic_frame.from_catalog(database="s-rohit1-epd-project-database", table_name="input", transformation_ctx="S3bucket_node1")
+
 
 logger.info('print schema of S3bucket_node1')
 S3bucket_node1.printSchema()
@@ -110,19 +115,27 @@ ApplyMapping_node2 = ApplyMapping.apply(
 
 # Convert dynamic dataframe into spark dataframe
 logger.info('convert dynamic dataframe ResolveChoice_node into spark dataframe')
-spark_data_frame=ApplyMapping_node2.toDF()
+spark_data_frame = ApplyMapping_node2.toDF()
 
-# Apply spark where clause
-logger.info('filter rows with where priceeach is not null')
-spark_data_frame_filter = spark_data_frame.where("priceeach is NOT NULL")
+# Calculate median values
+median_priceeach = spark_data_frame.select(F.percentile_approx("priceeach", 0.5)).collect()[0][0]
+median_sales = spark_data_frame.select(F.percentile_approx("sales", 0.5)).collect()[0][0]
 
-spark_data_frame_filter.show()
+logger.info(f'Calculated median for priceeach: {median_priceeach}')
+logger.info(f'Calculated median for sales: {median_sales}')
 
-logger.info('convert spark dataframe into table view product_view. so that we can run sql ')
-spark_data_frame_filter.createOrReplaceTempView("sales_view")
+# Replace null values with median
+spark_data_frame_filled = spark_data_frame.fillna({'new_priceeach': median_priceeach, 'new_sales': median_sales})
 
-logger.info('create dataframe by spark sql ')
-product_sql_df = spark.sql("SELECT new_city, new_year_id, count(ordernumber) as order_count,sum(new_quantityordered) as total_qty, sum(new_sales) as total_sales FROM product_view group by new_city ")
+logger.info('Replaced null values with median values')
+
+# Apply any additional transformations if needed
+
+logger.info('convert spark dataframe into table view product_view so that we can run SQL')
+spark_data_frame_filled.createOrReplaceTempView("sales_view")
+
+logger.info('create dataframe by spark sql')
+product_sql_df = spark.sql("SELECT new_city, new_year_id, count(new_ordernumber) as order_count, sum(new_quantityordered) as total_qty, sum(new_sales) as total_sales FROM sales_view GROUP BY new_city")
 
 logger.info('display records after aggregate result')
 product_sql_df.show()
@@ -135,9 +148,9 @@ logger.info('dynamic frame uploaded in bucket s-rohit1-epd-project-ip-bucket/out
 # Script generated for node S3 bucket
 S3bucket_node3 = glueContext.write_dynamic_frame.from_options(frame=dynamic_frame, connection_type="s3", format="glueparquet", connection_options={"path": "s3://s-rohit1-epd-project-ip-bucket/output/", "partitionKeys": []}, transformation_ctx="S3bucket_node3")
 
-logger.info('etl job processed successfully')
+logger.info('ETL job processed successfully')
 job.commit()
-```
+
 
 ### 6. Create Athena Table
 

@@ -1,3 +1,7 @@
+Here's the updated README with the AWS Glue ETL job script included:
+
+---
+
 # AWS ETL Project: S3 to Athena
 
 ## Overview
@@ -31,7 +35,9 @@ Create two S3 buckets:
 
 Upload your raw data files to the input S3 bucket (`s-rohit1-epd-project-ip-bucket/input`).
 
-### 3. Craete Database in glue data catalog
+### 3. Create Database in Glue Data Catalog
+
+Create a database in the AWS Glue Data Catalog to store metadata about the raw data.
 
 ### 4. Create an AWS Glue Crawler
 
@@ -39,11 +45,9 @@ Create an AWS Glue Crawler to crawl the input S3 bucket and create a database wi
 
 ### 5. Create an AWS Glue ETL Job
 
-![Screenshot 2024-08-03 231819](https://github.com/user-attachments/assets/c5fd47a0-98b1-41fb-ade4-2316fba5b8e3)
+Here is the AWS Glue ETL job script used to transform the data:
 
-
-Create and configure an AWS Glue ETL job with the following script:
-
+```python
 import sys
 from awsglue.transforms import *
 from awsglue.utils import getResolvedOptions
@@ -55,19 +59,15 @@ from pyspark.sql import functions as F
 from awsglue.dynamicframe import DynamicFrame
 import logging
 
-
+# Configure logging
 logger = logging.getLogger('my_logger')
 logger.setLevel(logging.INFO)
-
-
-# Create a handler for CloudWatch
 handler = logging.StreamHandler()
 handler.setLevel(logging.INFO)
 logger.addHandler(handler)
-
 logger.info('My log message')
 
-
+# Initialize Glue and Spark contexts
 args = getResolvedOptions(sys.argv, ['JOB_NAME'])
 sc = SparkContext()
 glueContext = GlueContext(sc)
@@ -75,19 +75,15 @@ spark = glueContext.spark_session
 job = Job(glueContext)
 job.init(args['JOB_NAME'], args)
 
-
-# Script generated for node Amazon S3
+# Data extraction from S3
 S3bucket_node1 = glueContext.create_dynamic_frame.from_catalog(database="s-rohit1-epd-project-database", table_name="input", transformation_ctx="S3bucket_node1")
-
-
 logger.info('print schema of S3bucket_node1')
 S3bucket_node1.printSchema()
-
 count = S3bucket_node1.count()
 print("Number of rows in S3bucket_node1 dynamic frame: ", count)
 logger.info('count for frame is {}'.format(count))
 
-# Apply Mapping
+# Data transformation
 ApplyMapping_node2 = ApplyMapping.apply(
     frame=S3bucket_node1,
     mappings=[
@@ -113,44 +109,35 @@ ApplyMapping_node2 = ApplyMapping.apply(
     transformation_ctx="ApplyMapping_node2"
 )
 
-# Convert dynamic dataframe into spark dataframe
+# Convert to Spark DataFrame
 logger.info('convert dynamic dataframe ResolveChoice_node into spark dataframe')
 spark_data_frame = ApplyMapping_node2.toDF()
 
-# Calculate median values
-median_priceeach = spark_data_frame.select(F.percentile_approx("priceeach", 0.5)).collect()[0][0]
-median_sales = spark_data_frame.select(F.percentile_approx("sales", 0.5)).collect()[0][0]
-
+# Calculate medians and replace null values
+median_priceeach = spark_data_frame.select(F.percentile_approx("new_priceeach", 0.5)).collect()[0][0]
+median_sales = spark_data_frame.select(F.percentile_approx("new_sales", 0.5)).collect()[0][0]
 logger.info(f'Calculated median for priceeach: {median_priceeach}')
 logger.info(f'Calculated median for sales: {median_sales}')
-
-# Replace null values with median
 spark_data_frame_filled = spark_data_frame.fillna({'new_priceeach': median_priceeach, 'new_sales': median_sales})
-
 logger.info('Replaced null values with median values')
 
-# Apply any additional transformations if needed
-
+# SQL operations
 logger.info('convert spark dataframe into table view product_view so that we can run SQL')
 spark_data_frame_filled.createOrReplaceTempView("sales_view")
-
 logger.info('create dataframe by spark sql')
 product_sql_df = spark.sql("SELECT new_city, new_year_id, count(new_ordernumber) as order_count, sum(new_quantityordered) as total_qty, sum(new_sales) as total_sales FROM sales_view GROUP BY new_city")
-
 logger.info('display records after aggregate result')
 product_sql_df.show()
 
-# Convert the data frame back to a dynamic frame
+# Load transformed data to S3
 logger.info('convert spark dataframe to dynamic frame ')
 dynamic_frame = DynamicFrame.fromDF(product_sql_df, glueContext, "dynamic_frame")
-
 logger.info('dynamic frame uploaded in bucket s-rohit1-epd-project-ip-bucket/output in parquet format ')
-# Script generated for node S3 bucket
 S3bucket_node3 = glueContext.write_dynamic_frame.from_options(frame=dynamic_frame, connection_type="s3", format="glueparquet", connection_options={"path": "s3://s-rohit1-epd-project-ip-bucket/output/", "partitionKeys": []}, transformation_ctx="S3bucket_node3")
 
 logger.info('ETL job processed successfully')
 job.commit()
-
+```
 
 ### 6. Create Athena Table
 
@@ -169,15 +156,16 @@ STORED AS INPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFo
 OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
 LOCATION 's3://s-rohit1-epd-project-ip-bucket/output/';
 ```
-### 7. Craete a Lambda function to run the ETL Job
+
+### 7. Create a Lambda Function to Run the ETL Job
 
 ![Screenshot 2024-08-03 233117](https://github.com/user-attachments/assets/d95fb455-11ad-4602-91bf-9ad4c91c835b)
 
 ### 8. Query Data Using Athena
 
 Run SQL queries on the data stored in the Athena table to generate insights.
-![Screenshot 2024-08-03 234453](https://github.com/user-attachments/assets/58cf6ce9-eaab-4baa-b3fc-d2923a64d99a)
 
+![Screenshot 2024-08-03 234453](https://github.com/user-attachments/assets/58cf6ce9-eaab-4baa-b3fc-d2923a64d99a)
 
 ## Conclusion
 
@@ -193,5 +181,3 @@ This project demonstrates how to set up an ETL pipeline using AWS Glue, transfor
 Rohit Rajendra Saswatkar
 
 ---
-
-Feel free to modify this README to better match your specific project setup and requirements.
